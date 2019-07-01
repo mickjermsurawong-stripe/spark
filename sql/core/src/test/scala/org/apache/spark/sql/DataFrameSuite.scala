@@ -156,6 +156,23 @@ class DataFrameSuite extends QueryTest with SharedSQLContext {
       structDf.select(xxhash64($"a", $"record.*")))
   }
 
+  test("Aggregate large number and config throw overflow") {
+    for {
+      nullOnOverflow <- Seq(true, false)
+    } yield {
+      withSQLConf((SQLConf.DECIMAL_OPERATIONS_NULL_ON_OVERFLOW.key, nullOnOverflow.toString)) {
+        val structDf = largeDecimals.select("a").agg(sum("a"))
+        if (nullOnOverflow) {
+          checkAnswer(structDf, Row(null))
+        } else {
+          intercept[Exception] {
+            structDf.collect
+          }
+        }
+      }
+    }
+  }
+
   test("Star Expansion - explode should fail with a meaningful message if it takes a star") {
     val df = Seq(("1,2"), ("4"), ("7,8,9")).toDF("csv")
     val e = intercept[AnalysisException] {
