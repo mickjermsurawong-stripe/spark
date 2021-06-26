@@ -125,6 +125,7 @@ case class ComplexValueClassContainer(
 case class SeqOfValueClass(s: Seq[StringWrapper])
 case class MapOfValueClassKey(m: Map[IntWrapper, String])
 case class MapOfValueClassValue(m: Map[String, StringWrapper])
+case class MapOfNestedValueClassValue(m: Map[String, ComplexValueClassContainer])
 case class OptionOfValueClassValue(o: Option[StringWrapper])
 
 class ExpressionEncoderSuite extends CodegenInterpretedPlanTest with AnalysisTest {
@@ -343,6 +344,12 @@ class ExpressionEncoderSuite extends CodegenInterpretedPlanTest with AnalysisTes
   encodeDecodeTest(
     MapOfValueClassValue(Map("a"-> StringWrapper("b"))),
     "case class with map of value class value")
+  encodeDecodeTest(
+    MapOfNestedValueClassValue(
+      Map("a"-> ComplexValueClassContainer(1, ValueContainer(2, StringWrapper("b")),
+      IntWrapper(3)))),
+    "case class with map of value class value")
+
   encodeDecodeTest(
     SeqOfValueClass(Seq(StringWrapper("a"))),
     "case class with seq of class value")

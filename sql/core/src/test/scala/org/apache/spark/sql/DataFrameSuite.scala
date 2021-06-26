@@ -687,6 +687,15 @@ class DataFrameSuite extends QueryTest with SharedSparkSession {
     checkAnswer(filtered, spark.sparkContext.parallelize(Seq(StringWrapper("a"))).toDF)
   }
 
+  test("Tuple class filter") {
+    val enc: Encoder[(StringWrapper, StringWrapper)] = implicitly[Encoder[(StringWrapper, StringWrapper)]]
+
+    val df = spark.createDataset(Seq(
+      (StringWrapper("a"), StringWrapper("a")),
+      (StringWrapper("a"), StringWrapper("b"))))
+      .map(x => (x._2, x._1)).collect()
+  }
+
   test("Array value class filter") {
     val ab = ArrayStringWrapper(Seq(StringWrapper("a"), StringWrapper("b")))
     val cd = ArrayStringWrapper(Seq(StringWrapper("c"), StringWrapper("d")))

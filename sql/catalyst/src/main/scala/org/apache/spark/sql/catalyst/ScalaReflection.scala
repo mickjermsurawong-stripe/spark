@@ -338,15 +338,16 @@ object ScalaReflection extends ScalaReflection {
         Invoke(obj, "deserialize", ObjectType(udt.userClass), path :: Nil)
 
       case t if definedByConstructorParams(t) =>
-        val unwrappedParams = getConstructorParameters(t).map(unwrapValueClassParam)
-
         val cls = getClassFromType(tpe)
+
+        val unwrappedParams = getConstructorParameters(t)
+          .map(p => unwrapValueClassParamFoo(p, getClassFromType(t)))
 
         val arguments = unwrappedParams.zipWithIndex.map { case ((fieldName, fieldType), i) =>
           val Schema(dataType, nullable) = schemaFor(fieldType)
           val clsName = getClassNameFromType(fieldType)
           val newTypePath = walkedTypePath.recordField(clsName, fieldName)
-
+          val a: Tuple2[String, String] = ("f", "f")
           // For tuples, we based grab the inner fields by ordinal instead of name.
           val newPath = if (cls.getName startsWith "scala.Tuple") {
             deserializerFor(
@@ -537,7 +538,8 @@ object ScalaReflection extends ScalaReflection {
             s"cannot have circular references in class, but got the circular reference of class $t")
         }
 
-        val unwrappedParams = getConstructorParameters(t).map(unwrapValueClassParam)
+        val unwrappedParams = getConstructorParameters(t)
+          .map(p => unwrapValueClassParamFoo(p, getClassFromType(t)))
         val fields = unwrappedParams.map { case (fieldName, fieldType) =>
           if (javaKeywords.contains(fieldName)) {
             throw new UnsupportedOperationException(s"`$fieldName` is a reserved keyword and " +
@@ -696,7 +698,8 @@ object ScalaReflection extends ScalaReflection {
       case t if isSubtype(t, definitions.ByteTpe) => Schema(ByteType, nullable = false)
       case t if isSubtype(t, definitions.BooleanTpe) => Schema(BooleanType, nullable = false)
       case t if definedByConstructorParams(t) =>
-        val unwrappedParams = getConstructorParameters(t).map(unwrapValueClassParam)
+        val unwrappedParams = getConstructorParameters(t)
+          .map(p => unwrapValueClassParamFoo(p, getClassFromType(t)))
         Schema(StructType(
           unwrappedParams.map { case (fieldName, fieldType) =>
             val Schema(dataType, nullable) = schemaFor(fieldType)
@@ -764,6 +767,18 @@ object ScalaReflection extends ScalaReflection {
   private def unwrapValueClassParam(param: (String, `Type`)): (String, `Type`) = {
     val (name, tpe) = param
     val unwrappedTpe = if (tpe.typeSymbol.asClass.isDerivedValueClass) {
+      getConstructorParameters(tpe.dealias).head._2
+    } else {
+      tpe
+    }
+    (name, unwrappedTpe)
+  }
+
+  private def unwrapValueClassParamFoo(param: (String, `Type`),
+                                       outerClz: Class[_]): (String, `Type`) = {
+    val (name, tpe) = param
+    val unwrappedTpe = if (tpe.typeSymbol.asClass.isDerivedValueClass
+      && !outerClz.getName.startsWith("scala.Tuple")) {
       getConstructorParameters(tpe.dealias).head._2
     } else {
       tpe
